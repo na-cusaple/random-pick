@@ -868,6 +868,137 @@
         padding-bottom: calc(2.5rem + env(safe-area-inset-bottom));
       }
     }
+
+    /* ===== VERSION BADGE ===== */
+    .version-badge {
+      display: inline-block;
+      margin-top: 0.6rem;
+      padding: 0.2rem 0.75rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      color: var(--accent-hover);
+      background: rgba(167, 139, 250, 0.1);
+      border: 1px solid rgba(167, 139, 250, 0.2);
+      border-radius: 20px;
+    }
+
+    /* ===== WORD ITEM ACTIONS ===== */
+    .word-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      flex-shrink: 0;
+    }
+
+    .word-qty-badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--accent);
+      background: rgba(167, 139, 250, 0.12);
+      padding: 0.15rem 0.55rem;
+      border-radius: 12px;
+      white-space: nowrap;
+      min-width: 30px;
+      text-align: center;
+    }
+
+    .btn-qty {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1.5px solid rgba(255, 255, 255, 0.1);
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition);
+      -webkit-tap-highlight-color: transparent;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .btn-qty:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-qty:active {
+      transform: scale(0.88);
+    }
+
+    .btn-qty.plus:hover {
+      color: var(--success);
+      border-color: rgba(52, 211, 153, 0.3);
+    }
+
+    .btn-qty.minus:hover {
+      color: var(--danger);
+      border-color: rgba(248, 113, 113, 0.3);
+    }
+
+    /* ===== MOBILE TOUCH IMPROVEMENTS ===== */
+    @media (hover: none) and (pointer: coarse) {
+      .btn-qty {
+        width: 36px;
+        height: 36px;
+        font-size: 1.15rem;
+      }
+
+      .btn-delete {
+        min-height: 36px;
+      }
+
+      .word-item {
+        padding: 0.65rem 0.8rem;
+      }
+    }
+
+    @media (max-width: 400px) {
+      .word-actions {
+        gap: 0.25rem;
+      }
+
+      .word-qty-badge {
+        font-size: 0.65rem;
+        padding: 0.1rem 0.4rem;
+        min-width: 26px;
+      }
+
+      .btn-qty {
+        width: 26px;
+        height: 26px;
+        font-size: 0.9rem;
+        border-radius: 6px;
+      }
+
+      .version-badge {
+        font-size: 0.6rem;
+        padding: 0.15rem 0.55rem;
+      }
+    }
+
+    /* ===== MOBILE HINT ===== */
+    .mobile-hint {
+      display: none;
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      padding: 0.5rem 0 0;
+      opacity: 0.6;
+    }
+
+    @media (hover: none) and (pointer: coarse) {
+      .mobile-hint {
+        display: block;
+      }
+    }
   </style>
 </head>
 
@@ -876,6 +1007,7 @@
   <header class="header">
     <h1>🎲 Random Word Picker</h1>
     <p>Thêm từ vào danh sách, bốc thăm ngẫu nhiên với hiệu ứng hồi hộp!</p>
+    <div class="version-badge">v1.0.0</div>
   </header>
 
   <section class="card" id="addCard">
@@ -913,6 +1045,7 @@
       <div class="empty-icon">📭</div>
       Chưa có từ nào. Hãy thêm từ ở trên!
     </div>
+    <div class="mobile-hint">💡 Nhấn −/+ để thay đổi số lượng · Nhấn ✕ để xoá</div>
   </section>
 
   <section class="random-section" id="randomSection">
@@ -999,7 +1132,12 @@
 
           li.innerHTML = `
             <span class="word-name" title="${escapeHtml(w.name)}">${escapeHtml(w.name)}</span>
-            <button class="btn btn-delete" aria-label="Xoá ${escapeHtml(w.name)}">✕ Xoá</button>
+            <div class="word-actions">
+              <span class="word-qty-badge">×${w.qty}</span>
+              <button class="btn btn-qty minus" data-index="${i}" aria-label="Giảm số lượng">−</button>
+              <button class="btn btn-qty plus" data-index="${i}" aria-label="Tăng số lượng">+</button>
+              <button class="btn btn-delete" aria-label="Xoá ${escapeHtml(w.name)}">✕</button>
+            </div>
           `;
           li.style.animationDelay = `${i * 0.04}s`;
           wordList.appendChild(li);
@@ -1082,6 +1220,27 @@
         item.addEventListener('animationend', () => {
           item.remove();
         }, { once: true });
+      });
+
+      /* ── Adjust quantity (mobile-friendly) ── */
+      wordList.addEventListener('click', (e) => {
+        const qtyBtn = e.target.closest('.btn-qty');
+        if (!qtyBtn) return;
+
+        const idx = parseInt(qtyBtn.dataset.index, 10);
+        if (isNaN(idx) || idx < 0 || idx >= words.length) return;
+
+        if (qtyBtn.classList.contains('plus')) {
+          words[idx].qty += 1;
+        } else if (qtyBtn.classList.contains('minus')) {
+          if (words[idx].qty > 1) {
+            words[idx].qty -= 1;
+          } else {
+            words.splice(idx, 1);
+          }
+        }
+
+        renderList();
       });
 
       /* ── Weighted random pick ── */
