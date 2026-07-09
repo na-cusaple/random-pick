@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Random Word Picker – Bốc Thăm Ngẫu Nhiên</title>
+  <meta name="description"
+    content="Ứng dụng bốc thăm/chọn từ ngẫu nhiên. Thêm từ, đặt số lượng và quay ngẫu nhiên với hiệu ứng hồi hộp." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
+  <style>
+    /* ===== RESET & BASE ===== */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-gradient-start: #0f0c29;
+      --bg-gradient-mid: #302b63;
+      --bg-gradient-end: #24243e;
+      --glass-bg: rgba(255, 255, 255, 0.06);
+      --glass-border: rgba(255, 255, 255, 0.12);
+      --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+      --accent: #a78bfa;
+      --accent-hover: #c4b5fd;
+      --accent-glow: rgba(167, 139, 250, 0.4);
+      --danger: #f87171;
+      --danger-hover: #fca5a5;
+      --success: #34d399;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --radius: 16px;
+      --radius-sm: 10px;
+      --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-mid), var(--bg-gradient-end));
+      color: var(--text-primary);
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 4rem;
+      overflow-x: hidden;
+    }
+
+    /* Animated background orbs */
+    body::before,
+    body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.3;
+      z-index: -1;
+      animation: float 20s ease-in-out infinite;
+    }
+
+    body::before {
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, #7c3aed, transparent 70%);
+      top: -10%;
+      left: -10%;
+    }
+
+    body::after {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, #2dd4bf, transparent 70%);
+      bottom: -10%;
+      right: -10%;
+      animation-delay: -10s;
+      animation-direction: reverse;
+    }
+
+    @keyframes float {
+
+      0%,
+      100% {
+        transform: translate(0, 0) scale(1);
+      }
+
+      25% {
+        transform: translate(60px, -40px) scale(1.1);
+      }
+
+      50% {
+        transform: translate(-30px, 60px) scale(0.95);
+      }
+
+      75% {
+        transform: translate(40px, 30px) scale(1.05);
+      }
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .header h1 {
+      font-size: clamp(1.8rem, 5vw, 2.8rem);
+      font-weight: 900;
+      background: linear-gradient(135deg, #c4b5fd, #a78bfa, #7c3aed, #2dd4bf);
+      background-size: 300% 300%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: gradient-shift 6s ease infinite;
+      letter-spacing: -0.02em;
+    }
+
+    .header p {
+      color: var(--text-secondary);
+      margin-top: 0.5rem;
+      font-size: 0.95rem;
+    }
+
+    @keyframes gradient-shift {
+
+      0%,
+      100% {
+        background-position: 0% 50%;
+      }
+
+      50% {
+        background-position: 100% 50%;
+      }
+    }
+
+    /* ===== GLASS CARD ===== */
+    .card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius);
+      box-shadow: var(--glass-shadow);
+      padding: 2rem;
+      width: 100%;
+      max-width: 520px;
+      margin-bottom: 1.5rem;
+      transition: transform var(--transition), box-shadow var(--transition);
+      overflow: hidden;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-title .icon {
+      font-size: 1.2rem;
+    }
+
+    /* ===== FORM ===== */
+    .input-group {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .input-wrapper {
+      flex: 1;
+      min-width: 0;
+      position: relative;
+    }
+
+    .input-wrapper.qty {
+      flex: 0 0 90px;
+    }
+
+    .input-wrapper label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.4rem;
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      width: 100%;
+      padding: 0.7rem 1rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1.5px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color var(--transition), box-shadow var(--transition);
+      font-size: max(0.95rem, 16px);
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    input::placeholder {
+      color: var(--text-muted);
+    }
+
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+    }
+
+    /* ===== BUTTONS ===== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      padding: 0.7rem 1.4rem;
+      transition: all var(--transition);
+      position: relative;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.15) 50%, transparent 70%);
+      transform: translateX(-100%);
+      transition: transform 0.5s;
+    }
+
+    .btn:hover::after {
+      transform: translateX(100%);
+    }
+
+    .btn-add {
+      background: linear-gradient(135deg, var(--accent), #7c3aed);
+      color: #fff;
+      margin-top: 1.5rem;
+      width: 100%;
+      padding: 0.8rem;
+      font-size: 1rem;
+    }
+
+    .btn-add:hover {
+      box-shadow: 0 4px 20px var(--accent-glow);
+      transform: translateY(-1px);
+    }
+
+    .btn-add:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    .btn-random {
+      background: linear-gradient(135deg, #7c3aed, #a78bfa, #2dd4bf);
+      background-size: 200% 200%;
+      animation: gradient-shift 4s ease infinite;
+      color: #fff;
+      font-size: 1.3rem;
+      font-weight: 800;
+      padding: 1.1rem 2.5rem;
+      border-radius: 60px;
+      letter-spacing: 0.02em;
+      box-shadow: 0 6px 30px var(--accent-glow);
+      width: 100%;
+      max-width: 320px;
+    }
+
+    .btn-random:hover {
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 8px 40px var(--accent-glow);
+    }
+
+    .btn-random:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    .btn-random:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none;
+      animation: none;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-random.is-spinning {
+      pointer-events: none;
+      opacity: 0.5;
+    }
+
+    .btn-delete {
+      background: transparent;
+      color: var(--danger);
+      padding: 0.35rem 0.6rem;
+      font-size: 0.8rem;
+      border: 1.5px solid rgba(248, 113, 113, 0.3);
+      border-radius: 8px;
+    }
+
+    .btn-delete:hover {
+      background: rgba(248, 113, 113, 0.15);
+      border-color: var(--danger);
+    }
+
+    .btn-reset {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1.5px solid var(--glass-border);
+      padding: 0.65rem 1.6rem;
+      border-radius: 60px;
+      font-size: 0.9rem;
+    }
+
+    .btn-reset:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    /* ===== WORD LIST ===== */
+    .word-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .word-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: var(--radius-sm);
+      animation: slide-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @keyframes slide-in {
+      from {
+        opacity: 0;
+        transform: translateY(-12px) scale(0.96);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .word-item .word-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .word-item.removing {
+      animation: slide-out 0.35s cubic-bezier(0.55, 0, 1, 0.45) forwards;
+    }
+
+    @keyframes slide-out {
+      to {
+        opacity: 0;
+        transform: translateX(30px) scale(0.9);
+        height: 0;
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
+      }
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .empty-state .empty-icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      opacity: 0.5;
+    }
+
+    /* ===== STATS BAR ===== */
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 3rem;
+      margin-bottom: 1.25rem;
+      padding: 0.75rem;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-item .stat-value {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--accent-hover);
+    }
+
+    .stat-item .stat-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+
+    /* ===== RANDOM SECTION ===== */
+    .random-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+      width: 100%;
+      max-width: 520px;
+    }
+
+    /* ===== RESULT OVERLAY ===== */
+    .result-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.4s, visibility 0.4s;
+    }
+
+    .result-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .result-card {
+      text-align: center;
+      padding: 3rem 3.5rem;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      transform: scale(0.8) translateY(30px);
+      transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      max-width: 90vw;
+    }
+
+    .result-overlay.active .result-card {
+      transform: scale(1) translateY(0);
+    }
+
+    .result-label {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .result-word {
+      font-size: clamp(2rem, 8vw, 4rem);
+      font-weight: 900;
+      background: linear-gradient(135deg, #c4b5fd, #7c3aed, #2dd4bf);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: result-pop 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+      word-break: break-word;
+    }
+
+    @keyframes result-pop {
+      0% {
+        transform: scale(0.3);
+        opacity: 0;
+      }
+
+      60% {
+        transform: scale(1.1);
+      }
+
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .result-close {
+      margin-top: 2rem;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-primary);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 0.6rem 2rem;
+      border-radius: 60px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .result-close:hover {
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    /* ===== SPINNING ANIMATION ===== */
+    .spin-container {
+      position: relative;
+      width: 100%;
+      max-width: 520px;
+      height: 80px;
+      overflow: hidden;
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .spin-container.active {
+      display: flex;
+    }
+
+    .spin-track {
+      position: absolute;
+      display: flex;
+      gap: 1.5rem;
+      white-space: nowrap;
+      will-change: transform;
+      left: 0;
+    }
+
+    .spin-track .spin-word {
+      font-size: 1.6rem;
+      font-weight: 700;
+      padding: 0 1rem;
+      color: var(--text-secondary);
+      opacity: 0.6;
+    }
+
+    /* Gradient fade edges */
+    .spin-container::before,
+    .spin-container::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 40%;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .spin-container::before {
+      left: 0;
+      background: linear-gradient(90deg, rgba(15, 12, 41, 0.95), transparent);
+    }
+
+    .spin-container::after {
+      right: 0;
+      background: linear-gradient(-90deg, rgba(15, 12, 41, 0.95), transparent);
+    }
+
+    .spin-center-line {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 3px;
+      height: 60%;
+      background: var(--accent);
+      border-radius: 4px;
+      z-index: 3;
+      box-shadow: 0 0 12px var(--accent-glow);
+      display: none;
+    }
+
+    .spin-container.active .spin-center-line {
+      display: block;
+    }
+
+    /* ===== SPINNING STATUS TEXT ===== */
+    .spin-status {
+      font-size: 0.85rem;
+      color: var(--accent-hover);
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    .spin-status.active {
+      opacity: 1;
+      animation: pulse-text 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-text {
+
+      0%,
+      100% {
+        opacity: 0.6;
+      }
+
+      50% {
+        opacity: 1;
+      }
+    }
+
+    /* ===== COMPLETION MESSAGE ===== */
+    .completion-msg {
+      text-align: center;
+      padding: 1.5rem;
+      background: rgba(52, 211, 153, 0.08);
+      border: 1px solid rgba(52, 211, 153, 0.2);
+      border-radius: var(--radius);
+      color: var(--success);
+      font-weight: 600;
+      font-size: 1rem;
+      display: none;
+      animation: slide-in 0.4s ease;
+      width: 100%;
+    }
+
+    .completion-msg.active {
+      display: block;
+    }
+
+    .completion-msg .completion-icon {
+      font-size: 2rem;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    /* ===== CONFETTI ===== */
+    .confetti-piece {
+      position: fixed;
+      z-index: 1001;
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      pointer-events: none;
+      animation: confetti-fall 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    }
+
+    @keyframes confetti-fall {
+      0% {
+        transform: translateY(-20px) rotate(0deg) scale(1);
+        opacity: 1;
+      }
+
+      100% {
+        transform: translateY(100vh) rotate(720deg) scale(0.3);
+        opacity: 0;
+      }
+    }
+
+    /* ===== RESPONSIVE — TABLET ===== */
+    @media (max-width: 600px) {
+      body {
+        padding: 1.25rem 0.75rem 3rem;
+      }
+
+      .card {
+        padding: 1.25rem;
+        border-radius: 14px;
+      }
+
+      .input-group {
+        flex-direction: column;
+        gap: 0.6rem;
+      }
+
+      .input-wrapper.qty {
+        flex: 1;
+      }
+
+      .result-card {
+        padding: 2rem 1.5rem;
+      }
+
+      .stats {
+        gap: 1.5rem;
+      }
+
+      .btn-random {
+        font-size: 1.1rem;
+        padding: 1rem 2rem;
+      }
+
+      .spin-container {
+        height: 70px;
+      }
+
+      .spin-track .spin-word {
+        font-size: 1.3rem;
+        padding: 0 0.6rem;
+      }
+    }
+
+    /* ===== RESPONSIVE — PHONE ===== */
+    @media (max-width: 400px) {
+      body {
+        padding: 1rem 0.5rem 2.5rem;
+      }
+
+      .header {
+        margin-bottom: 1.5rem;
+      }
+
+      .header h1 {
+        font-size: 1.5rem;
+      }
+
+      .header p {
+        font-size: 0.82rem;
+      }
+
+      .card {
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-radius: 12px;
+      }
+
+      .card-title {
+        font-size: 0.85rem;
+        margin-bottom: 0.75rem;
+      }
+
+      input[type="text"],
+      input[type="number"] {
+        padding: 0.6rem 0.8rem;
+      }
+
+      .btn-add {
+        margin-top: 1rem;
+        padding: 0.7rem;
+        font-size: 0.9rem;
+      }
+
+      .stats {
+        gap: 1rem;
+        padding: 0.5rem;
+      }
+
+      .stat-item .stat-value {
+        font-size: 1.15rem;
+      }
+
+      .stat-item .stat-label {
+        font-size: 0.6rem;
+      }
+
+      .word-item {
+        padding: 0.55rem 0.7rem;
+      }
+
+      .word-item .word-name {
+        font-size: 0.85rem;
+      }
+
+      .btn-delete {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.45rem;
+      }
+
+      .btn-random {
+        font-size: 1rem;
+        padding: 0.9rem 1.5rem;
+        max-width: 100%;
+      }
+
+      .spin-container {
+        height: 60px;
+        border-radius: 12px;
+      }
+
+      .spin-track .spin-word {
+        font-size: 1.1rem;
+        padding: 0 0.5rem;
+      }
+
+      .result-card {
+        padding: 1.5rem 1.25rem;
+        border-radius: 18px;
+      }
+
+      .result-word {
+        font-size: clamp(1.5rem, 10vw, 2.5rem);
+      }
+
+      .result-close {
+        padding: 0.55rem 1.5rem;
+        font-size: 0.85rem;
+      }
+
+      .completion-msg {
+        padding: 1rem;
+        font-size: 0.9rem;
+      }
+
+      .btn-reset {
+        font-size: 0.8rem;
+        padding: 0.55rem 1.2rem;
+      }
+
+      .random-section {
+        gap: 1rem;
+      }
+    }
+
+    /* ===== Safe areas for phones with notch ===== */
+    @supports (padding: env(safe-area-inset-bottom)) {
+      body {
+        padding-bottom: calc(2.5rem + env(safe-area-inset-bottom));
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header class="header">
+    <h1>🎲 Random Word Picker</h1>
+    <p>Thêm từ vào danh sách, bốc thăm ngẫu nhiên với hiệu ứng hồi hộp!</p>
+  </header>
+
+  <section class="card" id="addCard">
+    <div class="card-title"><span class="icon">✏️</span> Thêm Từ Mới</div>
+    <div class="input-group">
+      <div class="input-wrapper">
+        <label for="wordInput">Tên từ / cụm từ</label>
+        <input type="text" id="wordInput" placeholder="Nhập từ cần thêm…" autocomplete="off" autocorrect="off"
+          spellcheck="false" />
+      </div>
+      <div class="input-wrapper qty">
+        <label for="qtyInput">Số lượng</label>
+        <input type="number" id="qtyInput" value="1" min="1" max="999" />
+      </div>
+    </div>
+    <button class="btn btn-add" id="addBtn" type="button">
+      ➕ Thêm vào danh sách
+    </button>
+  </section>
+
+  <section class="card" id="listCard">
+    <div class="card-title"><span class="icon">📋</span> Danh Sách Từ</div>
+    <div class="stats" id="statsBar">
+      <div class="stat-item">
+        <div class="stat-value" id="statWords">0</div>
+        <div class="stat-label">Số loại từ</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="statTotal">0</div>
+        <div class="stat-label">Lượt quay còn lại</div>
+      </div>
+    </div>
+    <ul class="word-list" id="wordList"></ul>
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">📭</div>
+      Chưa có từ nào. Hãy thêm từ ở trên!
+    </div>
+  </section>
+
+  <section class="random-section" id="randomSection">
+    <div class="spin-status" id="spinStatus">✨ Đang quay…</div>
+    <div class="spin-container" id="spinContainer">
+      <div class="spin-track" id="spinTrack"></div>
+      <div class="spin-center-line"></div>
+    </div>
+    <button class="btn btn-random" id="randomBtn" disabled>
+      🎰 Quay Ngẫu Nhiên
+    </button>
+
+    <div class="completion-msg" id="completionMsg">
+      <span class="completion-icon">🎉</span>
+      Đã bốc hết tất cả các từ!
+    </div>
+
+    <button class="btn btn-reset" id="resetBtn" style="display:none;">
+      🔄 Làm lại từ đầu
+    </button>
+  </section>
+
+  <div class="result-overlay" id="resultOverlay">
+    <div class="result-card">
+      <div class="result-label">Kết quả bốc thăm</div>
+      <div class="result-word" id="resultWord"></div>
+      <button class="result-close" id="resultClose">Đóng</button>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      /* ── State ── */
+      let words = [];          // { name: string, qty: number }
+      let pickedCount = 0;
+      let isAdding = false;
+
+      /* ── DOM refs ── */
+      const wordInput = document.getElementById('wordInput');
+      const qtyInput = document.getElementById('qtyInput');
+      const addBtn = document.getElementById('addBtn');
+      const addCard = document.getElementById('addCard');
+      const listCard = document.getElementById('listCard');
+      const wordList = document.getElementById('wordList');
+      const emptyState = document.getElementById('emptyState');
+      const randomBtn = document.getElementById('randomBtn');
+      const resetBtn = document.getElementById('resetBtn');
+      const spinContainer = document.getElementById('spinContainer');
+      const spinTrack = document.getElementById('spinTrack');
+      const spinStatus = document.getElementById('spinStatus');
+      const resultOverlay = document.getElementById('resultOverlay');
+      const resultWord = document.getElementById('resultWord');
+      const resultClose = document.getElementById('resultClose');
+      const completionMsg = document.getElementById('completionMsg');
+      const statWords = document.getElementById('statWords');
+      const statTotal = document.getElementById('statTotal');
+
+      /* ── Helpers ── */
+      function getTotalQty() {
+        return words.reduce((s, w) => s + w.qty, 0);
+      }
+
+      function updateStats() {
+        statWords.textContent = words.length;
+        statTotal.textContent = getTotalQty();
+      }
+
+      function updateUI() {
+        const total = getTotalQty();
+        emptyState.style.display = words.length === 0 ? 'block' : 'none';
+        randomBtn.disabled = total === 0;
+        resetBtn.style.display = (pickedCount > 0 || words.length > 0) ? 'inline-flex' : 'none';
+        completionMsg.classList.toggle('active', words.length === 0 && pickedCount > 0);
+        updateStats();
+      }
+
+      function renderList() {
+        wordList.innerHTML = '';
+        words.forEach((w, i) => {
+          const li = document.createElement('li');
+          li.className = 'word-item';
+
+          li.innerHTML = `
+            <span class="word-name" title="${escapeHtml(w.name)}">${escapeHtml(w.name)}</span>
+            <button class="btn btn-delete" aria-label="Xoá ${escapeHtml(w.name)}">✕ Xoá</button>
+          `;
+          li.style.animationDelay = `${i * 0.04}s`;
+          wordList.appendChild(li);
+        });
+        updateUI();
+      }
+
+      function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+      }
+
+      /* ── Add word ── */
+      function addWord() {
+        if (isAdding) return;
+        isAdding = true;
+        setTimeout(() => { isAdding = false; }, 50);
+
+        const rawName = wordInput.value.trim();
+        let qty = parseInt(qtyInput.value, 10);
+        if (!rawName) {
+          wordInput.focus();
+          wordInput.style.borderColor = 'var(--danger)';
+          setTimeout(() => wordInput.style.borderColor = '', 1500);
+          return;
+        }
+        if (isNaN(qty) || qty < 1) qty = 1;
+
+        const name = rawName.normalize('NFC');
+        const searchName = name.toLowerCase();
+
+        const existing = words.find(w => w.name.normalize('NFC').toLowerCase() === searchName);
+        if (existing) {
+          existing.qty += qty;
+        } else {
+          words.push({ name, qty });
+        }
+
+        wordInput.value = '';
+        qtyInput.value = '1';
+        wordInput.focus();
+        renderList();
+      }
+
+      addBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        addWord();
+      });
+
+      const handleEnter = (e) => {
+        if (e.key === 'Enter') {
+          if (e.isComposing || e.keyCode === 229) return;
+          e.preventDefault();
+          addWord();
+        }
+      };
+
+      wordInput.addEventListener('keydown', handleEnter);
+      qtyInput.addEventListener('keydown', handleEnter);
+
+      /* ── Delete word ── */
+      wordList.addEventListener('click', (e) => {
+        const btn = e.target.closest('.btn-delete');
+        if (!btn) return;
+
+        const item = btn.closest('.word-item');
+        if (item.classList.contains('removing')) return;
+
+        const nameToDel = item.querySelector('.word-name').textContent.normalize('NFC');
+        const actualIdx = words.findIndex(w => w.name.normalize('NFC') === nameToDel);
+
+        if (actualIdx !== -1) {
+          words.splice(actualIdx, 1);
+        }
+
+        item.classList.add('removing');
+        updateUI();
+
+        item.addEventListener('animationend', () => {
+          item.remove();
+        }, { once: true });
+      });
+
+      /* ── Weighted random pick ── */
+      function weightedPick() {
+        const total = getTotalQty();
+        if (total === 0) return null;
+        let rand = Math.floor(Math.random() * total);
+        for (const w of words) {
+          if (rand < w.qty) return w;
+          rand -= w.qty;
+        }
+        // Fallback an toàn (thuật toán sẽ không bao giờ chọn từ có qty = 0)
+        return words.find(w => w.qty > 0);
+      }
+
+      /* ── Spin animation ── */
+      function createSpinElements() {
+        spinTrack.innerHTML = '';
+        const names = words.map(w => w.name);
+        if (names.length === 0) return names;
+        const count = Math.max(60, names.length * 8);
+        for (let i = 0; i < count; i++) {
+          const el = document.createElement('span');
+          el.className = 'spin-word';
+          el.textContent = names[i % names.length];
+          spinTrack.appendChild(el);
+        }
+        return names;
+      }
+
+      function animateSpin(pickedWord) {
+        return new Promise(resolve => {
+          const names = createSpinElements();
+          if (names.length === 0) { resolve(); return; }
+          spinContainer.classList.add('active');
+
+          const items = spinTrack.children;
+          const containerCenter = spinContainer.offsetWidth / 2;
+
+          let targetIdx = Math.floor(items.length * 0.7);
+          while (items[targetIdx].textContent !== pickedWord && targetIdx < items.length - 5) {
+            targetIdx++;
+          }
+          if (items[targetIdx].textContent !== pickedWord) {
+            items[targetIdx].textContent = pickedWord;
+          }
+
+          void spinTrack.offsetHeight;
+
+          const targetItem = items[targetIdx];
+          const targetOffset = targetItem.offsetLeft - containerCenter + (targetItem.offsetWidth / 2);
+
+          const duration = 2800;
+
+          spinTrack.style.transition = 'none';
+          spinTrack.style.transform = 'translateX(0)';
+
+          void spinTrack.offsetHeight;
+
+          spinTrack.style.transition = `transform ${duration}ms cubic-bezier(0.15, 0.85, 0.35, 1)`;
+          spinTrack.style.transform = `translateX(-${targetOffset}px)`;
+
+          setTimeout(() => {
+            spinContainer.classList.remove('active');
+            resolve();
+          }, duration + 200);
+        });
+      }
+
+      /* ── Confetti ── */
+      function spawnConfetti() {
+        const colors = ['#a78bfa', '#7c3aed', '#2dd4bf', '#f472b6', '#facc15', '#34d399', '#60a5fa'];
+        for (let i = 0; i < 40; i++) {
+          const piece = document.createElement('div');
+          piece.className = 'confetti-piece';
+          piece.style.left = `${Math.random() * 100}vw`;
+          piece.style.top = `${-10 + Math.random() * 20}px`;
+          piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+          piece.style.width = `${6 + Math.random() * 8}px`;
+          piece.style.height = `${6 + Math.random() * 8}px`;
+          piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+          piece.style.animationDuration = `${1 + Math.random() * 1.5}s`;
+          piece.style.animationDelay = `${Math.random() * 0.5}s`;
+          document.body.appendChild(piece);
+          setTimeout(() => piece.remove(), 3000);
+        }
+      }
+
+      /* ── Random click ── */
+      let spinning = false;
+      randomBtn.addEventListener('click', async () => {
+        if (spinning || getTotalQty() === 0) return;
+        spinning = true;
+        randomBtn.disabled = true;
+        randomBtn.classList.add('is-spinning');
+
+        const picked = weightedPick();
+        if (!picked) { spinning = false; randomBtn.classList.remove('is-spinning'); updateUI(); return; }
+
+        spinStatus.classList.add('active');
+
+        await new Promise(r => setTimeout(r, 350));
+        await animateSpin(picked.name);
+
+        spinStatus.classList.remove('active');
+
+        // Trừ đi 1 lượt ngầm đằng sau, nhưng KHÔNG xóa phần tử khỏi mảng words
+        picked.qty -= 1;
+        pickedCount++;
+
+        resultWord.textContent = picked.name;
+        resultOverlay.classList.add('active');
+        spawnConfetti();
+
+        // Kiểm tra xem đã quay hết tất cả mọi từ chưa
+        if (getTotalQty() === 0) {
+          // Xóa trắng toàn bộ danh sách khi mọi thứ đã hết
+          words = [];
+        }
+
+        renderList();
+        randomBtn.classList.remove('is-spinning');
+        spinning = false;
+      });
+
+      /* ── Close result ── */
+      function closeResult() {
+        resultOverlay.classList.remove('active');
+      }
+      resultClose.addEventListener('click', closeResult);
+      resultOverlay.addEventListener('click', (e) => {
+        if (e.target === resultOverlay) closeResult();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeResult();
+      });
+
+      /* ── Reset ── */
+      resetBtn.addEventListener('click', () => {
+        words = [];
+        pickedCount = 0;
+        completionMsg.classList.remove('active');
+        renderList();
+      });
+
+      /* ── Initial render ── */
+      renderList();
+    })();
+  </script>
+</body>
+
+</html>
